@@ -1,0 +1,214 @@
+{
+  "generado": "2026-10-26T11:36:30",
+  "capas": [
+    {
+      "id": "BG_Afectaciones_1",
+      "titulo": "Afectaciones prediales (BG)",
+      "grupo": "II Predios",
+      "geometria": "poligono",
+      "color": "#e03131",
+      "entidades": 1776,
+      "epsg": 32717,
+      "archivo": "BG_Afectaciones_1.geojson",
+      "actualizado": "2026-10-26T11:36:28"
+    },
+    {
+      "id": "Inter_Energia_Electrica_po",
+      "titulo": "Energía eléctrica (polígonos)",
+      "grupo": "III Interferencias",
+      "geometria": "poligono",
+      "color": "#f08c00",
+      "entidades": 0,
+      "epsg": 32717,
+      "archivo": "Inter_Energia_Electrica_po.geojson",
+      "actualizado": "2026-10-26T11:36:28"
+    },
+    {
+      "id": "Inter_Energia_Electrica_li",
+      "titulo": "Energía eléctrica (líneas)",
+      "grupo": "III Interferencias",
+      "geometria": "linea",
+      "color": "#f08c00",
+      "entidades": 516,
+      "epsg": 32717,
+      "archivo": "Inter_Energia_Electrica_li.geojson",
+      "actualizado": "2026-10-26T11:36:28"
+    },
+    {
+      "id": "Inter_Energia_Electrica_pt",
+      "titulo": "Energía eléctrica (puntos)",
+      "grupo": "III Interferencias",
+      "geometria": "punto",
+      "color": "#f08c00",
+      "entidades": 436,
+      "epsg": 32717,
+      "archivo": "Inter_Energia_Electrica_pt.geojson",
+      "actualizado": "2026-10-26T11:36:28"
+    },
+    {
+      "id": "Inter_Telecomunicaciones_po",
+      "titulo": "Telecomunicaciones (polígonos)",
+      "grupo": "III Interferencias",
+      "geometria": "poligono",
+      "color": "#7048e8",
+      "entidades": 0,
+      "epsg": 32717,
+      "archivo": "Inter_Telecomunicaciones_po.geojson",
+      "actualizado": "2026-10-26T11:36:28"
+    },
+    {
+      "id": "Inter_Telecomunicaciones_li",
+      "titulo": "Telecomunicaciones (líneas)",
+      "grupo": "III Interferencias",
+      "geometria": "linea",
+      "color": "#7048e8",
+      "entidades": 66,
+      "epsg": 32717,
+      "archivo": "Inter_Telecomunicaciones_li.geojson",
+      "actualizado": "2026-10-26T11:36:28"
+    },
+    {
+      "id": "Inter_Telecomunicaciones_pt",
+      "titulo": "Telecomunicaciones (puntos)",
+      "grupo": "III Interferencias",
+      "geometria": "punto",
+      "color": "#7048e8",
+      "entidades": 119,
+      "epsg": 32717,
+      "archivo": "Inter_Telecomunicaciones_pt.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Agua_Alcantarillado_po",
+      "titulo": "Agua y alcantarillado (polígonos)",
+      "grupo": "III Interferencias",
+      "geometria": "poligono",
+      "color": "#1971c2",
+      "entidades": 60,
+      "epsg": 32717,
+      "archivo": "Inter_Agua_Alcantarillado_po.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Agua_Alcantarillado_li",
+      "titulo": "Agua y alcantarillado (líneas)",
+      "grupo": "III Interferencias",
+      "geometria": "linea",
+      "color": "#1971c2",
+      "entidades": 133,
+      "epsg": 32717,
+      "archivo": "Inter_Agua_Alcantarillado_li.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Agua_Alcantarillado_pt",
+      "titulo": "Agua y alcantarillado (puntos)",
+      "grupo": "III Interferencias",
+      "geometria": "punto",
+      "color": "#1971c2",
+      "entidades": 47,
+      "epsg": 32717,
+      "archivo": "Inter_Agua_Alcantarillado_pt.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Gas_po",
+      "titulo": "Gas (polígonos)",
+      "grupo": "III Interferencias",
+      "geometria": "poligono",
+      "color": "#c2255c",
+      "entidades": 1,
+      "epsg": 32717,
+      "archivo": "Inter_Gas_po.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Gas_li",
+      "titulo": "Gas (líneas)",
+      "grupo": "III Interferencias",
+      "geometria": "linea",
+      "color": "#c2255c",
+      "entidades": 479,
+      "epsg": 32717,
+      "archivo": "Inter_Gas_li.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Gas_pt",
+      "titulo": "Gas (puntos)",
+      "grupo": "III Interferencias",
+      "geometria": "punto",
+      "color": "#c2255c",
+      "entidades": 78,
+      "epsg": 32717,
+      "archivo": "Inter_Gas_pt.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Canales_Riego_po",
+      "titulo": "Canales de riego (polígonos)",
+      "grupo": "III Interferencias",
+      "geometria": "poligono",
+      "color": "#0ca678",
+      "entidades": 8,
+      "epsg": 32717,
+      "archivo": "Inter_Canales_Riego_po.geojson",
+      "actualizado": "2026-10-26T11:36:29"
+    },
+    {
+      "id": "Inter_Canales_Riego_li",
+      "titulo": "Canales de riego (líneas)",
+      "grupo": "III Interferencias",
+      "geometria": "linea",
+      "color": "#0ca678",
+      "entidades": 404,
+      "epsg": 32717,
+      "archivo": "Inter_Canales_Riego_li.geojson",
+      "actualizado": "2026-10-26T11:36:30"
+    },
+    {
+      "id": "Inter_Canales_Riego_pt",
+      "titulo": "Canales de riego (puntos)",
+      "grupo": "III Interferencias",
+      "geometria": "punto",
+      "color": "#0ca678",
+      "entidades": 84,
+      "epsg": 32717,
+      "archivo": "Inter_Canales_Riego_pt.geojson",
+      "actualizado": "2026-10-26T11:36:30"
+    },
+    {
+      "id": "Inter_Infraestructura_Civil_po",
+      "titulo": "Infraestructura civil (polígonos)",
+      "grupo": "III Interferencias",
+      "geometria": "poligono",
+      "color": "#495057",
+      "entidades": 0,
+      "epsg": 32717,
+      "archivo": "Inter_Infraestructura_Civil_po.geojson",
+      "actualizado": "2026-10-26T11:36:30"
+    },
+    {
+      "id": "Inter_Infraestructura_Civil_li",
+      "titulo": "Infraestructura civil (líneas)",
+      "grupo": "III Interferencias",
+      "geometria": "linea",
+      "color": "#495057",
+      "entidades": 0,
+      "epsg": 32717,
+      "archivo": "Inter_Infraestructura_Civil_li.geojson",
+      "actualizado": "2026-10-26T11:36:30"
+    },
+    {
+      "id": "Inter_Infraestructura_Civil_pt",
+      "titulo": "Infraestructura civil (puntos)",
+      "grupo": "III Interferencias",
+      "geometria": "punto",
+      "color": "#495057",
+      "entidades": 44,
+      "epsg": 32717,
+      "archivo": "Inter_Infraestructura_Civil_pt.geojson",
+      "actualizado": "2026-10-26T11:36:30"
+    }
+  ]
+}

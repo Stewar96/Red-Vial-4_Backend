@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Vial 4 · Visor GIS</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* =========================================================================
+   RED VIAL 4 — Visor GIS de afectaciones e interferencias
+   Mapa con el estilo del mapa del tablero PROVIAS Nacional (panel de capas
+   en vidrio, galería de mapas base, leyenda dinámica, fichas emergentes).
+   Cartografía oficial PROVIAS: servicios V1.
+   ========================================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --paper-strong:  rgba(255,255,255,.82);
+  --line:          rgba(20,22,35,.09);
+  --line-strong:   rgba(20,22,35,.16);
+  --blur:          blur(20px) saturate(180%);
+  --ink:           #14161c;
+  --ink-soft:      #4b5568;
+  --ink-faint:     #838a9b;
+  --accent:        #8294c9;
+  --accent-dark:   #6475ad;
+  --muted-soft:    #eceef2;
+  --grad-exec:     linear-gradient(135deg, #bccced 0%, #d6c8ea 100%);
+  --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  --pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(20,22,35,.05), 0 8px 22px rgba(20,22,35,.06);
+  --shadow:    0 14px 34px rgba(20,22,35,.13), 0 2px 8px rgba(20,22,35,.07);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+[hidden]{ display:none !important; }
+html,body{ height:100%; }
+body{ margin:0; font-family:var(--font); background:#e7edf3; color:var(--ink); -webkit-font-smoothing:antialiased; font-size:14px; line-height:1.45; }
+button{ font-family:inherit; }
+:focus{ outline:none; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+.scroll::-webkit-scrollbar{ width:7px; height:7px; }
+.scroll::-webkit-scrollbar-thumb{ background:rgba(20,22,35,.22); border-radius:10px; }
+
+/* ---- Mapa ---- */
+.mapwrap{ position:relative; width:100%; height:100vh; overflow:hidden; }
+#map{ width:100%; height:100%; background:#e7edf3; }
+
+.map-badge{
+  position:absolute; left:52px; top:10px; z-index:650; background:rgba(14,16,22,.82);
+  backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+  color:#fff; font-size:10.5px; padding:5px 12px; border-radius:var(--pill); line-height:1.4;
+}
+.map-badge b{ font-weight:700; }
+.map-badge span{ color:#b8bfd0; }
+
+/* ---- Leyenda ---- */
+.map-legend{
+  position:absolute; left:10px; bottom:10px; background:var(--paper-strong); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--line); border-radius:14px; font-size:10.5px; color:var(--ink-soft); box-shadow:var(--shadow-sm);
+  display:flex; flex-direction:column; z-index:640; max-width:270px; max-height:48%; overflow:hidden;
+}
+.map-legend__head{
+  border:none; background:transparent; font:inherit; font-size:10px; font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--ink-soft); padding:8px 12px; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:left;
+}
+.map-legend__head:hover{ color:var(--ink); }
+.map-legend__items{ padding:0 12px 9px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; min-height:0; }
+.map-legend__grp{ font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-faint); margin-top:6px; }
+.map-legend .it{ display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.map-legend .it img{ width:16px; height:16px; object-fit:contain; flex:none; }
+.map-legend .src{ margin-top:4px; padding-top:5px; border-top:1px solid var(--line); color:var(--ink-faint); font-size:9.5px; white-space:normal; }
+.map-legend__wmsimg img{ max-width:100%; width:auto; height:auto; background:#fff; border-radius:6px; border:1px solid var(--line); }
+.sw{ width:14px; height:3px; border-radius:2px; flex:none; }
+.sw.poligono{ height:10px; border-radius:3px; }
+.sw.punto{ width:9px; height:9px; border-radius:50%; margin:0 2px; }
+
+/* ---- Panel GIS ---- */
+.gis-panel{
+  position:absolute; top:10px; right:10px; z-index:660;
+  display:flex; flex-direction:column; align-items:flex-end; gap:8px; max-height:calc(100% - 20px);
+}
+.gis-panel__toggle{
+  display:flex; align-items:center; gap:7px; cursor:pointer;
+  border:1px solid var(--line); background:var(--paper-strong); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+  border-radius:var(--pill); padding:7px 15px; font-size:11.5px; font-weight:700; color:var(--ink);
+  box-shadow:var(--shadow-sm); transition:box-shadow .12s;
+}
+.gis-panel__toggle:hover{ box-shadow:var(--shadow); }
+.gis-panel__toggle svg{ width:15px; height:15px; color:var(--ink-soft); }
+.gis-panel__body{
+  width:310px; min-height:0; overflow-y:auto;
+  background:var(--paper-strong); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); padding:12px 13px 14px;
+}
+.gis-sec{ margin-bottom:13px; }
+.gis-sec:last-child{ margin-bottom:0; }
+.gis-sec__title{
+  font-size:9.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-faint); margin-bottom:7px; padding-bottom:4px; border-bottom:1px solid var(--line);
+  display:flex; justify-content:space-between; gap:8px;
+}
+.gis-sec__title i{ font-style:normal; font-weight:600; letter-spacing:0; text-transform:none; }
+.gis-sec__hint{ font-size:9.5px; color:var(--ink-faint); line-height:1.4; padding-top:2px; }
+.gis-basemaps{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+.gis-bm{ border:2px solid transparent; border-radius:10px; background:transparent; padding:2px; cursor:pointer; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.gis-bm img{ width:100%; height:36px; object-fit:cover; border-radius:7px; display:block; background:#dde1ea; }
+.gis-bm span{ font-size:8px; color:var(--ink-soft); line-height:1.15; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gis-bm:hover img{ opacity:.85; }
+.gis-bm.active{ border-color:var(--accent); }
+.gis-bm.active span{ color:var(--accent-dark); font-weight:700; }
+.gis-row{ display:flex; align-items:center; gap:7px; font-size:11px; color:var(--ink); padding:2.5px 0; cursor:pointer; min-width:0; flex:1; }
+.gis-row input{ accent-color:var(--accent); width:13px; height:13px; flex:none; cursor:pointer; margin:0; }
+.gis-row .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+.gis-row .n{ color:var(--ink-faint); font-size:10px; font-variant-numeric:tabular-nums; flex:none; }
+.gis-row.vacia{ opacity:.45; cursor:default; }
+.gis-row .inst{
+  font-size:8px; font-weight:800; letter-spacing:.03em; color:var(--ink-soft);
+  background:var(--muted-soft); border-radius:5px; padding:1px 5px; margin-right:5px; flex:none;
+}
+.gis-node__row{ display:flex; align-items:center; gap:2px; min-width:0; }
+.gis-node__chev{ width:16px; height:16px; border:none; background:transparent; padding:0; cursor:pointer; color:var(--ink-faint); display:flex; align-items:center; justify-content:center; flex:none; }
+.gis-node__chev svg{ width:11px; height:11px; transition:transform .15s; }
+.gis-node__chev.open svg{ transform:rotate(90deg); }
+.gis-node__chev:hover{ color:var(--ink); }
+.gis-node__sp{ width:16px; flex:none; }
+.gis-node__kids{ border-left:1px dotted var(--line-strong); margin-left:7px; padding-left:2px; }
+.gis-loading{ font-size:10.5px; color:var(--ink-faint); padding:2px 0; }
+
+/* ---- Popups ---- */
+.leaflet-container{ font-family:var(--font); }
+.leaflet-popup-content-wrapper{ border-radius:14px !important; }
+.leaflet-popup-content{ font-size:12px; margin:8px 12px; }
+.arc-pop{ font-size:11.5px; min-width:260px; max-width:340px; }
+.arc-pop__title{
+  background:var(--grad-exec); color:#1e2235; font-weight:800; font-size:10.5px; letter-spacing:.02em;
+  padding:7px 30px 7px 11px; border-radius:10px 10px 0 0; margin:-8px -12px 8px;
+}
+.arc-pop__rows{ max-height:300px; overflow-y:auto; display:flex; flex-direction:column; }
+.arc-pop .idr{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-bottom:1px dashed var(--line); }
+.arc-pop .idr:last-child{ border-bottom:none; }
+.arc-pop .idr span{ color:var(--ink-faint); flex:none; max-width:45%; overflow:hidden; text-overflow:ellipsis; }
+.arc-pop .idr b{ font-weight:600; text-align:right; word-break:break-word; min-width:0; }
+.arc-pop .idr.key b{ font-weight:800; }
+.arc-pop__grp + .arc-pop__grp{ margin-top:9px; }
+.arc-pop__grp .t{ display:block; font-size:11px; font-weight:700; margin-bottom:3px; }
+.arc-pop__grp .t i{ color:var(--ink-faint); font-style:normal; font-weight:500; font-size:9.5px; }
+
+@media (max-width:760px){
+  .gis-panel__body{ width:min(310px, calc(100vw - 20px)); }
+  .map-legend{ max-width:200px; max-height:34%; }
+  .map-badge{ max-width:calc(100vw - 170px); }
+}
+</style>
+</head>
+<body>
+<div class="mapwrap">
+  <div id="map"></div>
+  <div class="map-badge" id="badge"><b>Red Vial 4</b> · Cargando…</div>
+  <div class="gis-panel" id="gisPanel"></div>
+  <div class="map-legend" id="legend"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/esri-leaflet@3.0.19/dist/esri-leaflet.js"></script>
+<script>
+/* =========================================================================
+   Configuración
+   ========================================================================= */
+const PVN_REST = 'https://sig.pvn.gob.pe/arcgis_server/rest/services/OPP';
+// Servicios oficiales PROVIAS Nacional — versión V1 (reemplaza PROVIAS_NACIONAL_v11/v12).
+// El árbol de capas se arma leyendo el propio servicio, así que sigue sus cambios.
+const PVN_SERVICES = {
+  rvn:   { titulo:'Red Vial Nacional · PROVIAS', url:`${PVN_REST}/RED_VIAL_NACIONAL_v1/MapServer`, defaults:[2,3,4,5,6,7] },
+  carto: { titulo:'Cartografía Base · PROVIAS',  url:`${PVN_REST}/CARTOGRAFIA_BASE_v1/MapServer`,  defaults:[39] },
+};
+
+const ARCGIS_BASE = 'https://services.arcgisonline.com/ArcGIS/rest/services';
+const BASEMAPS = {
+  'Satelital':     { base:`${ARCGIS_BASE}/World_Imagery/MapServer`, ref:`${ARCGIS_BASE}/Reference/World_Boundaries_and_Places/MapServer`, thumb:`${ARCGIS_BASE}/World_Imagery/MapServer/tile/5/16/9` },
+  'OpenStreetMap': { type:'osm', base:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', thumb:'https://tile.openstreetmap.org/5/9/16.png' },
+  'Gris claro':    { base:`${ARCGIS_BASE}/Canvas/World_Light_Gray_Base/MapServer`, ref:`${ARCGIS_BASE}/Canvas/World_Light_Gray_Reference/MapServer`, thumb:`${ARCGIS_BASE}/Canvas/World_Light_Gray_Base/MapServer/tile/5/16/9` },
+  'Gris oscuro':   { base:`${ARCGIS_BASE}/Canvas/World_Dark_Gray_Base/MapServer`, ref:`${ARCGIS_BASE}/Canvas/World_Dark_Gray_Reference/MapServer`, thumb:`${ARCGIS_BASE}/Canvas/World_Dark_Gray_Base/MapServer/tile/5/16/9` },
+  'Topográfico':   { base:`${ARCGIS_BASE}/World_Topo_Map/MapServer`, thumb:`${ARCGIS_BASE}/World_Topo_Map/MapServer/tile/5/16/9` },
+  'Calles':        { base:`${ARCGIS_BASE}/World_Street_Map/MapServer`, thumb:`${ARCGIS_BASE}/World_Street_Map/MapServer/tile/5/16/9` },
+  'NatGeo':        { base:`${ARCGIS_BASE}/NatGeo_World_Map/MapServer`, thumb:`${ARCGIS_BASE}/NatGeo_World_Map/MapServer/tile/5/16/9` },
+  'Océanos':       { base:`${ARCGIS_BASE}/Ocean/World_Ocean_Base/MapServer`, ref:`${ARCGIS_BASE}/Ocean/World_Ocean_Reference/MapServer`, thumb:`${ARCGIS_BASE}/Ocean/World_Ocean_Base/MapServer/tile/5/16/9` },
+};
+
+// Interoperabilidad de datos institucionales (mismos servicios que el tablero PROVIAS).
+// Los WMS publican solo EPSG:4326/CRS:84, por eso se piden con crs 4326.
+const INSTITUTIONAL = {
+  minamCobertura:    { inst:'MINAM',    name:'Cobertura vegetal',        version:'1.3.0', layers:'0', url:'https://geoservidorperu.minam.gob.pe/arcgis/services/Servicios_GeoPERU/ServicioCoberturaVegetal_MINAM/MapServer/WMSServer' },
+  minamEcosistemas:  { inst:'MINAM',    name:'Ecosistemas',              version:'1.3.0', layers:'0', url:'https://geoservidorperu.minam.gob.pe/arcgis/services/Servicios_GeoPERU/ServicioEcosistemas_MINAM/MapServer/WMSServer' },
+  midagriComunidades:{ inst:'MIDAGRI',  name:'Comunidades Campesinas',   type:'esri', layerId:1, url:'https://georural.midagri.gob.pe/geoservicios/rest/services/servicios_ogc/Catastro_Rural/MapServer' },
+  midagriComNativas: { inst:'MIDAGRI',  name:'Comunidades Nativas',      type:'esri', layerId:2, url:'https://georural.midagri.gob.pe/geoservicios/rest/services/servicios_ogc/Catastro_Rural/MapServer' },
+  midagriPredio:     { inst:'MIDAGRI',  name:'Predio Rústico',           version:'1.3.0', layers:'0', url:'https://winlmprap09.midagri.gob.pe/winlmprap13/services/ogc/COPREDRUST/MapServer/WMSServer' },
+  sernanpAnp:        { inst:'SERNANP',  name:'ANP Definitiva',           version:'1.3.0', layers:'3', url:'https://geoservicios.sernanp.gob.pe/arcgis/services/base_fisica/peru_sernanp_0102/MapServer/WMSServer' },
+  serforEcoFragiles: { inst:'SERFOR',   name:'Ecosistemas Frágiles',     version:'1.3.0', layers:'1', url:'https://geo.serfor.gob.pe/geoservicios/services/Servicios_OGC/Inventario_Forestal/MapServer/WMSServer' },
+  ingemmetCatastro:  { inst:'INGEMMET', name:'Catastro Minero',          version:'1.3.0', layers:'2', url:'https://geocatmin.ingemmet.gob.pe/arcgis/services/SERV_CATASTRO_MINERO_WGS84/MapServer/WMSServer' },
+  minculMonumentos:  { inst:'MINCUL',   name:'Monumentos Arqueológicos', version:'1.1.0', layers:'cultura_map', url:'https://geoservicios.cultura.gob.pe/geoserver/interoperabilidad/cultura_map/wms' },
+};
+
+// Campos que encabezan la ficha de cada entidad del proyecto (si existen)
+const KEY_FIELDS = ['CODIGO','N_EXP','ESTAD_AVANC','TIPO','TRAMO','SUBTRAMO','PROGRESIVA','NOM_TITU','AREA_AFEC',
+                    'CODIGO_ETELI','N_INTER','TIPO_INTER','SUBCATEGORIA','DESCRIPCION','TITULAR','ESTADO_LIBERACION'];
+const SKIP_FIELDS = /^(OBJECTID|Shape_Length|Shape_Area)$/i;
+
+const ICON = {
+  layers: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8.5 4.5L12 12 3.5 7.5 12 3z"/><path d="M3.5 12l8.5 4.5 8.5-4.5M3.5 16.5L12 21l8.5-4.5"/></svg>`,
+  chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`,
+};
+
+/* =========================================================================
+   Estado
+   ========================================================================= */
+const S = {
+  basemap: 'Satelital',
+  panelOpen: window.innerWidth > 760,
+  legendCollapsed: window.innerWidth <= 760,
+  open: { 'rvn:0':true, 'rvn:1':true, 'carto:0':true, 'carto:38':true },
+  manifest: null,
+  proj: {},          // id -> { cfg, layer (L.geoJSON), visible }
+  pvn: {},           // svc -> { tree, checked:{id:true}, layer, legend:{id:...} }
+  wms: {},           // key -> L.Layer (solo las activas)
+};
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString('es-PE');
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k, v){ try{ localStorage.setItem(k, v); }catch(e){} },
+};
+
+/* =========================================================================
+   Mapa
+   ========================================================================= */
+const map = L.map('map', { zoomControl:true, maxZoom:20, minZoom:4 }).setView([-9.4, -78.4], 8);
+map.createPane('proyecto'); map.getPane('proyecto').style.zIndex = 450;
+const projRenderer = L.canvas({ pane:'proyecto', tolerance:4 });
+const ESRI_ATTR = 'Esri, PROVIAS Nacional';
+
+const baseLayers = {};
+for(const [name, cfg] of Object.entries(BASEMAPS)){
+  const parts = cfg.type === 'osm'
+    ? [L.tileLayer(cfg.base, { maxZoom:20, maxNativeZoom:19, attribution:'&copy; OpenStreetMap' })]
+    : [L.esri.tiledMapLayer({ url:cfg.base, maxZoom:20, maxNativeZoom:19, attribution:ESRI_ATTR })];
+  if(cfg.ref) parts.push(L.esri.tiledMapLayer({ url:cfg.ref, maxZoom:20, maxNativeZoom:19 }));
+  baseLayers[name] = L.layerGroup(parts);
+}
+S.basemap = BASEMAPS[store.get('rv4-basemap')] ? store.get('rv4-basemap') : 'Satelital';
+baseLayers[S.basemap].addTo(map);
+
+function setBasemap(name){
+  if(name === S.basemap) return;
+  map.removeLayer(baseLayers[S.basemap]);
+  S.basemap = name;
+  baseLayers[name].addTo(map).bringToBack?.();
+  store.set('rv4-basemap', name);
+  renderPanel();
+}
+
+/* ---- Capas del proyecto (GeoJSON publicados por sync_gdb.py) ---- */
+function featureTitle(cfg, props){
+  const id = props.CODIGO || props.N_EXP || props.CODIGO_ETELI || props.N_INTER;
+  return id ? `${cfg.titulo} · ${id}` : cfg.titulo;
+}
+function fichaHtml(cfg, props){
+  const entries = Object.entries(props).filter(([k,v]) => v !== null && v !== '' && !SKIP_FIELDS.test(k));
+  const keys = entries.filter(([k]) => KEY_FIELDS.includes(k)).sort((a,b) => KEY_FIELDS.indexOf(a[0]) - KEY_FIELDS.indexOf(b[0]));
+  const rest = entries.filter(([k]) => !KEY_FIELDS.includes(k));
+  const row = ([k,v], key) => `<div class="idr${key?' key':''}"><span title="${esc(k)}">${esc(k)}</span><b>${esc(v)}</b></div>`;
+  return `<div class="arc-pop"><div class="arc-pop__title">${esc(featureTitle(cfg, props))}</div>
+    <div class="arc-pop__rows scroll">${keys.map(e=>row(e,true)).join('')}${rest.map(e=>row(e,false)).join('')}</div></div>`;
+}
+function projStyle(cfg){
+  return { renderer:projRenderer, pane:'proyecto', color:cfg.color, weight:cfg.geometria==='linea'?2.6:1.2,
+           fillColor:cfg.color, fillOpacity:.32, opacity:.95, bubblingMouseEvents:false };
+}
+async function loadProj(cfg){
+  const r = await fetch('data/' + cfg.archivo + '?v=' + encodeURIComponent(cfg.actualizado));
+  const gj = await r.json();
+  return L.geoJSON(gj, {
+    style: () => projStyle(cfg),
+    pointToLayer: (f, ll) => L.circleMarker(ll, { ...projStyle(cfg), radius:5.5, color:'#fff', weight:1.2, fillOpacity:.95 }),
+    onEachFeature: (f, l) => l.bindPopup(() => fichaHtml(cfg, f.properties), { maxWidth:360 }),
+  });
+}
+async function setProjVisible(id, on){
+  const p = S.proj[id];
+  p.visible = on;
+  if(on){
+    if(!p.layer) p.layer = await loadProj(p.cfg);
+    if(p.visible) p.layer.addTo(map);
+  } else if(p.layer){ map.removeLayer(p.layer); }
+  renderLegend(); renderBadge();
+}
+
+/* ---- Servicios PROVIAS (V1) ---- */
+function buildTree(layers){
+  const byId = {}, roots = [];
+  layers.forEach(l => { byId[l.id] = { id:l.id, name:l.name, children: l.subLayerIds ? [] : null }; });
+  layers.forEach(l => {
+    const n = byId[l.id];
+    if(l.parentLayerId === -1 || l.parentLayerId === undefined) roots.push(n);
+    else if(byId[l.parentLayerId]) byId[l.parentLayerId].children.push(n);
+  });
+  return roots;
+}
+const leaves = (nodes, out=[]) => { nodes.forEach(n => n.children ? leaves(n.children, out) : out.push(n.id)); return out; };
+function findNode(nodes, id){
+  for(const n of nodes){ if(n.id === id) return n; if(n.children){ const f = findNode(n.children, id); if(f) return f; } }
+  return null;
+}
+function nodeState(n, checked){
+  const ls = leaves([n]); const on = ls.filter(id => checked[id]).length;
+  return on === 0 ? 'off' : on === ls.length ? 'on' : 'mixed';
+}
+const visibleIds = svc => { const s = S.pvn[svc]; return s.tree ? leaves(s.tree).filter(id => s.checked[id]) : []; };
+
+async function initPvn(svc){
+  const cfg = PVN_SERVICES[svc];
+  S.pvn[svc] = { tree:null, checked:{}, layer:null, legend:null, error:false };
+  cfg.defaults.forEach(id => S.pvn[svc].checked[id] = true);
+  try{
+    const info = await (await fetch(cfg.url + '?f=json')).json();
+    S.pvn[svc].tree = buildTree(info.layers || []);
+    applyPvn(svc);
+    fetch(cfg.url + '/legend?f=json').then(r => r.json()).then(lg => {
+      S.pvn[svc].legend = {};
+      (lg.layers || []).forEach(l => S.pvn[svc].legend[l.layerId] = l);
+      renderLegend();
+    }).catch(() => {});
+  }catch(e){ S.pvn[svc].error = true; }
+  renderPanel();
+}
+function applyPvn(svc){
+  const s = S.pvn[svc], ids = visibleIds(svc);
+  if(ids.length){
+    if(!s.layer) s.layer = L.esri.dynamicMapLayer({ url:PVN_SERVICES[svc].url, layers:ids, opacity:.9, attribution:'PROVIAS Nacional' }).addTo(map);
+    else s.layer.setLayers(ids);
+  } else if(s.layer){ map.removeLayer(s.layer); s.layer = null; }
+  renderLegend();
+}
+
+/* ---- Interoperabilidad institucional ---- */
+function setWms(key, on){
+  const cfg = INSTITUTIONAL[key];
+  if(on && !S.wms[key]){
+    S.wms[key] = cfg.type === 'esri'
+      ? L.esri.dynamicMapLayer({ url:cfg.url, layers:[cfg.layerId], opacity:.72, attribution:cfg.inst })
+      : L.tileLayer.wms(cfg.url, { layers:cfg.layers, format:'image/png', transparent:true, version:cfg.version,
+                                   crs:L.CRS.EPSG4326, opacity:.72, zIndex:5, attribution:cfg.inst });
+    S.wms[key].addTo(map);
+  } else if(!on && S.wms[key]){ map.removeLayer(S.wms[key]); delete S.wms[key]; }
+  renderLegend();
+}
+
+/* ---- Identify: clic en el mapa → atributos de las capas PROVIAS activas ---- */
+map.on('click', e => {
+  const tasks = Object.keys(PVN_SERVICES).filter(svc => visibleIds(svc).length);
+  if(!tasks.length) return;
+  let pending = tasks.length; const results = [];
+  tasks.forEach(svc => {
+    const s = S.pvn[svc];
+    L.esri.identifyFeatures({ url:PVN_SERVICES[svc].url }).on(map).at(e.latlng)
+      .layers('visible:' + visibleIds(svc).join(',')).tolerance(6)
+      .run((err, fc) => {
+        pending--;
+        if(!err && fc && fc.features) fc.features.slice(0, 5).forEach(f => {
+          const node = findNode(s.tree, f.layerId);
+          results.push([PVN_SERVICES[svc].titulo, node ? node.name : 'Capa ' + f.layerId, f.properties || {}]);
+        });
+        if(pending === 0 && results.length){
+          const html = `<div class="arc-pop"><div class="arc-pop__title">Consulta PROVIAS Nacional</div><div class="arc-pop__rows scroll">` +
+            results.map(([svcName, lname, props]) => {
+              const rows = Object.entries(props)
+                .filter(([k,v]) => v !== null && v !== '' && v !== 'Null' && !/^(objectid|shape|fid_|esri)/i.test(k) && !/shape[._]/i.test(k))
+                .slice(0, 14).map(([k,v]) => `<div class="idr"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+              return `<div class="arc-pop__grp"><span class="t">${esc(lname)} <i>· ${esc(svcName)}</i></span>${rows || '<div class="idr"><span>Sin atributos</span></div>'}</div>`;
+            }).join('') + `</div></div>`;
+          L.popup({ maxWidth:360 }).setLatLng(e.latlng).setContent(html).openOn(map);
+        }
+      });
+  });
+});
+
+/* =========================================================================
+   Panel de capas
+   ========================================================================= */
+function treeHtml(svc, nodes, depth){
+  const s = S.pvn[svc];
+  return nodes.map(n => {
+    const key = `${svc}:${n.id}`, open = !!S.open[key], st = nodeState(n, s.checked);
+    return `<div style="${depth?`margin-left:${depth*11}px`:''}">
+      <div class="gis-node__row">
+        ${n.children ? `<button class="gis-node__chev ${open?'open':''}" data-open="${key}" aria-expanded="${open}" aria-label="Expandir ${esc(n.name)}">${ICON.chevron}</button>` : '<span class="gis-node__sp"></span>'}
+        <label class="gis-row"><input type="checkbox" data-pvn="${key}" ${st==='on'?'checked':''} ${st==='mixed'?'data-mixed="1"':''}><span class="nm">${esc(n.name)}</span></label>
+      </div>
+      ${n.children && open ? `<div class="gis-node__kids">${treeHtml(svc, n.children, depth+1)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+function renderPanel(){
+  const panel = document.getElementById('gisPanel');
+  const prev = panel.querySelector('.gis-panel__body');
+  const scroll = prev ? prev.scrollTop : 0;
+  const grupos = S.manifest ? [...new Set(S.manifest.capas.map(c => c.grupo))] : [];
+  panel.innerHTML = `
+    <button class="gis-panel__toggle" id="panelToggle" aria-expanded="${S.panelOpen}">${ICON.layers}<span>Capas</span></button>
+    <div class="gis-panel__body scroll" ${S.panelOpen?'':'hidden'}>
+      <div class="gis-sec">
+        <div class="gis-sec__title">Mapa base</div>
+        <div class="gis-basemaps">${Object.entries(BASEMAPS).map(([name,cfg]) => `
+          <button class="gis-bm ${S.basemap===name?'active':''}" data-base="${esc(name)}" title="${esc(name)}">
+            <img src="${cfg.thumb}" alt="" loading="lazy"><span>${esc(name)}</span></button>`).join('')}
+        </div>
+      </div>
+      ${grupos.map(g => `
+        <div class="gis-sec">
+          <div class="gis-sec__title">${esc(g)} <i>Proyecto RV4</i></div>
+          ${S.manifest.capas.filter(c => c.grupo === g).map(c => {
+            const vacia = c.entidades === 0;
+            return `<label class="gis-row${vacia?' vacia':''}">
+              <input type="checkbox" data-proj="${esc(c.id)}" ${S.proj[c.id].visible?'checked':''} ${vacia?'disabled':''}>
+              <span class="sw ${c.geometria}" style="background:${c.color}"></span>
+              <span class="nm" title="${esc(c.titulo)}">${esc(c.titulo)}</span><span class="n">${fmt(c.entidades)}</span></label>`;
+          }).join('')}
+        </div>`).join('')}
+      ${Object.entries(PVN_SERVICES).map(([svc, cfg]) => `
+        <div class="gis-sec">
+          <div class="gis-sec__title">${esc(cfg.titulo)} <i>V1</i></div>
+          ${!S.pvn[svc] || (!S.pvn[svc].tree && !S.pvn[svc].error) ? '<div class="gis-loading">Cargando servicio…</div>'
+            : S.pvn[svc].error ? '<div class="gis-loading">No se pudo conectar con sig.pvn.gob.pe</div>'
+            : treeHtml(svc, S.pvn[svc].tree, 0)}
+        </div>`).join('')}
+      <div class="gis-sec">
+        <div class="gis-sec__title">Interoperabilidad institucional</div>
+        ${Object.entries(INSTITUTIONAL).map(([key,cfg]) => `
+          <label class="gis-row"><input type="checkbox" data-wms="${key}" ${S.wms[key]?'checked':''}>
+            <span class="nm"><b class="inst">${esc(cfg.inst)}</b>${esc(cfg.name)}</span></label>`).join('')}
+      </div>
+      <div class="gis-sec__hint">Clic en una entidad del proyecto para ver su ficha; clic en el mapa para consultar las capas PROVIAS activas.</div>
+    </div>`;
+  const body = panel.querySelector('.gis-panel__body');
+  if(body) body.scrollTop = scroll;
+  panel.querySelectorAll('[data-mixed]').forEach(cb => cb.indeterminate = true);
+
+  panel.querySelector('#panelToggle').onclick = () => { S.panelOpen = !S.panelOpen; renderPanel(); };
+  panel.querySelectorAll('[data-base]').forEach(b => b.onclick = () => setBasemap(b.dataset.base));
+  panel.querySelectorAll('[data-proj]').forEach(cb => cb.onchange = () => setProjVisible(cb.dataset.proj, cb.checked));
+  panel.querySelectorAll('[data-wms]').forEach(cb => cb.onchange = () => setWms(cb.dataset.wms, cb.checked));
+  panel.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.open[b.dataset.open] = !S.open[b.dataset.open]; renderPanel(); });
+  panel.querySelectorAll('[data-pvn]').forEach(cb => cb.onchange = () => {
+    const [svc, id] = cb.dataset.pvn.split(':');
+    const s = S.pvn[svc], node = findNode(s.tree, +id);
+    leaves([node]).forEach(l => { if(cb.checked) s.checked[l] = true; else delete s.checked[l]; });
+    applyPvn(svc); renderPanel();
+  });
+}
+L.DomEvent.disableClickPropagation(document.getElementById('gisPanel'));
+L.DomEvent.disableScrollPropagation(document.getElementById('gisPanel'));
+
+/* =========================================================================
+   Leyenda y distintivo
+   ========================================================================= */
+function renderLegend(){
+  const el = document.getElementById('legend');
+  let items = '';
+  if(S.manifest){
+    const vis = S.manifest.capas.filter(c => S.proj[c.id].visible);
+    if(vis.length) items += `<div class="map-legend__grp">Proyecto Red Vial 4</div>` +
+      vis.map(c => `<div class="it"><span class="sw ${c.geometria}" style="background:${c.color}"></span>${esc(c.titulo)}</div>`).join('');
+  }
+  for(const [svc, cfg] of Object.entries(PVN_SERVICES)){
+    const s = S.pvn[svc]; if(!s || !s.tree) continue;
+    const ids = visibleIds(svc); if(!ids.length) continue;
+    items += `<div class="map-legend__grp">${esc(cfg.titulo)}</div>`;
+    if(!s.legend){ items += `<div class="it">Cargando leyenda…</div>`; continue; }
+    items += ids.map(id => {
+      const l = s.legend[id], node = findNode(s.tree, id);
+      if(!l || !l.legend || !l.legend.length) return '';
+      const it = l.legend[0];
+      const extra = l.legend.length > 1 ? ` <span style="color:var(--ink-faint)">(${l.legend.length} clases)</span>` : '';
+      return `<div class="it"><img src="data:${it.contentType};base64,${it.imageData}" alt="">${esc(node ? node.name : l.layerName)}${extra}</div>`;
+    }).join('');
+  }
+  for(const key of Object.keys(S.wms)){
+    const cfg = INSTITUTIONAL[key];
+    items += `<div class="map-legend__grp">${esc(cfg.inst)} — ${esc(cfg.name)}</div>`;
+    items += cfg.type === 'esri'
+      ? `<div class="it"><span class="sw poligono" style="background:${key==='midagriComNativas'?'#9ac48a':'#d8b46a'}"></span>${esc(cfg.name)}</div>`
+      : `<div class="it map-legend__wmsimg"><img src="${cfg.url}?service=WMS&request=GetLegendGraphic&version=${cfg.version}&format=image/png&layer=${cfg.layers}" alt="Leyenda ${esc(cfg.name)}" loading="lazy"></div>`;
+  }
+  items += `<div class="it src">Fuentes: GDB Red Vial 4 · PROVIAS Nacional (V1) · servicios institucionales</div>`;
+  el.innerHTML = `<button class="map-legend__head" id="legendToggle" aria-expanded="${!S.legendCollapsed}">Leyenda <span>${S.legendCollapsed?'▸':'▾'}</span></button>
+    <div class="map-legend__items scroll" ${S.legendCollapsed?'hidden':''}>${items}</div>`;
+  el.querySelector('#legendToggle').onclick = () => { S.legendCollapsed = !S.legendCollapsed; renderLegend(); };
+}
+L.DomEvent.disableClickPropagation(document.getElementById('legend'));
+L.DomEvent.disableScrollPropagation(document.getElementById('legend'));
+
+function renderBadge(){
+  if(!S.manifest) return;
+  const vis = S.manifest.capas.filter(c => S.proj[c.id].visible);
+  const n = vis.reduce((a, c) => a + c.entidades, 0);
+  const fecha = new Date(S.manifest.generado).toLocaleString('es-PE', { dateStyle:'medium', timeStyle:'short' });
+  document.getElementById('badge').innerHTML =
+    `<b>Red Vial 4</b> · ${fmt(n)} entidades · <span>act. ${esc(fecha)}</span>`;
+}
+
+/* =========================================================================
+   Inicio
+   ========================================================================= */
+async function init(){
+  renderPanel(); renderLegend();
+  Object.keys(PVN_SERVICES).forEach(initPvn);
+  const m = await (await fetch('data/capas.json', { cache:'no-store' })).json();
+  S.manifest = m;
+  m.capas.forEach(c => S.proj[c.id] = { cfg:c, layer:null, visible: c.entidades > 0 });
+  renderPanel(); renderBadge();
+
+  // descarga en paralelo; polígonos debajo de líneas y puntos
+  const orden = { poligono:0, linea:1, punto:2 };
+  const lista = m.capas.filter(c => c.entidades > 0).sort((a,b) => orden[a.geometria] - orden[b.geometria]);
+  await Promise.all(lista.map(async c => { S.proj[c.id].layer = await loadProj(c); }));
+  lista.forEach(c => S.proj[c.id].layer.addTo(map));
+  const ext = L.featureGroup(lista.map(c => S.proj[c.id].layer)).getBounds();
+  if(ext.isValid()) map.fitBounds(ext, { padding:[30,30] });
+  renderLegend(); renderBadge();
+}
+init().catch(err => { document.getElementById('badge').innerHTML = '<b>Red Vial 4</b> · error al cargar datos'; console.error(err); });
+</script>
+</body>
+</html>

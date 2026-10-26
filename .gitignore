@@ -1,0 +1,8 @@
+# Binarios y configuración local de GeoServer (se descargan, no van al repositorio)
+runtime/
+data_dir/
+datos/
+config.local.json
+ejemplo/
+__pycache__/
+*.tmp

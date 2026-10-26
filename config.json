@@ -1,0 +1,19 @@
+{
+  "gdb": "C:/Users/stewar/Documents/Proyectos/01_MTC/Red vial 4/00-Base GIS/02_PRODUCCION/02_DATOS/red_vial_4.gdb",
+
+  "capas": [
+    { "dataset": "II_Predios",         "grupo": "II Predios",         "incluir": ["BG_Afectaciones_1"] },
+    { "dataset": "III_Interferencias", "grupo": "III Interferencias", "incluir": "*" }
+  ],
+
+  "excluir_campos": [],
+
+  "gpkg": "datos/red_vial_4.gpkg",
+  "web_datos": "docs/data",
+
+  "geoserver": {
+    "url": "http://localhost:8080/geoserver",
+    "workspace": "red_vial_4",
+    "datastore": "gpkg_red_vial_4"
+  }
+}
